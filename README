@@ -1,0 +1,11 @@
+snippets, samples, tools - nothing serious:
+
+
+= play.pl =
+
+    play.pl filter=value filter2=value=2 - plays tracks via mpg123
+
+For filters, see:  
+http://developers.soundcloud.com/docs/api/tracks#filtering
+
+

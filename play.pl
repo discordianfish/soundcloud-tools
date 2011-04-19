@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-
+# try: player.pl tags=dubstep q=sick
 
 use constant ID => 'r7hAB5SAlvls3rjlVjJ2w';
 use constant SECRET => 'RKp3czlwOJSLlMMJhemXM3dDBVboIZVofKs24NGy4';
@@ -8,13 +8,22 @@ use LWP::UserAgent;
 use URI;
 use JSON qw(from_json);
 use Term::ReadKey;
-use Data::Dumper;
+
+my %filter;
+for my $opt (@ARGV)
+{
+    $opt =~ /^([^=]*)=(.*)$/
+        or die "invalid filter: $opt";
+    $filter{$1} = $2;
+}
 
 print "username: ";
 my $user = <STDIN>;
+
 print "password: ";
 ReadMode('noecho');
 my $pass = ReadLine(0);
+ReadMode('normal');
 
 my $ua = LWP::UserAgent->new;
 $ua->agent('perl-cli-radio/0.01');
@@ -23,15 +32,14 @@ $ua->agent('perl-cli-radio/0.01');
 open my $player, "|mpg123 -"
     or die "could not open player: $!";
 
-for my $track (@{ request('tracks.json', limit => 1) })
+for my $track (@{ request('tracks.json', limit => 200, %filter) })
 {
-    print $track->{title}, "\n";
+    print "$track->{user}->{username} - $track->{title}: $track->{permlink_url}\n";
     unless ($track->{streamable})
     {
         print "not streamable, skipping\n";
         next;
     }
-    print Dumper($track);
 
     my $uri = URI->new($track->{stream_url});
     $uri->query_form
@@ -42,15 +50,13 @@ for my $track (@{ request('tracks.json', limit => 1) })
         username => $user,
         password => $password
     );
+    warn $uri;
     my $ret = $ua->get
     (
         $uri,
         ':content_cb' => sub
         {
-            warn "callback called";
-            my ($data, $response) = @_;
-            warn Dumper($response);
-            print $player $data
+            print $player shift
                or die "could not play data from stream: $!"
         }
     );
